@@ -98,14 +98,17 @@ def power_iterate(g, feat, K, truncate=None, last=False, rw=True):
     If truncate: truncate the list to keep only the first few and last few iterates
     """
     powers = [feat]
-    
+    if rw==False:
+        g.edata["weight"] = calc_weight(g)
+
     for iter in range(K):
       #message passing
       g.ndata['tildeU'] = feat
       if rw:
         g.update_all(fn.copy_u('tildeU', 'm'),fn.mean('m', 'tildeU'))
       else:
-        g.update_all(fn.copy_u('tildeU', 'm'),fn.sum('m', 'tildeU'))
+        g.update_all(fn.u_mul_e(f"tildeU", "weight", "m"), fn.sum("m", f"tildeU"))
+        #g.update_all(fn.copy_u('tildeU', 'm'),fn.sum('m', 'tildeU'))
       #normalization
       tildeU = g.ndata.pop('tildeU')
       normalizer = torch.linalg.pinv(torch.triu(tildeU.T @ tildeU))
@@ -118,6 +121,7 @@ def power_iterate(g, feat, K, truncate=None, last=False, rw=True):
       return powers[:truncate] + powers[-truncate:]
     else:
       return powers
+
 
 def prepare_data(device, args):
     data = load_dataset(args.dataset)
