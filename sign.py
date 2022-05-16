@@ -91,7 +91,7 @@ def calc_weight(g):
 #             res.append(g.ndata.pop(f"feat_{hop}"))
 #         return res
 
-def power_iterate(g, feat, K, truncate=None, last=False, rw=True):
+def power_iterate(g, feat, K, truncate=None, last=False, rw=True, upper_tri=False):
     """
     Precompute power-iterated features
     Return: a list with length-K of feature matrices, each with shape (n by d)
@@ -111,7 +111,10 @@ def power_iterate(g, feat, K, truncate=None, last=False, rw=True):
         #g.update_all(fn.copy_u('tildeU', 'm'),fn.sum('m', 'tildeU'))
       #normalization
       tildeU = g.ndata.pop('tildeU')
-      normalizer = torch.linalg.pinv(torch.triu(tildeU.T @ tildeU))
+      if upper_tri:
+        normalizer = torch.linalg.pinv(torch.triu(tildeU.T @ tildeU))
+      else:
+        normalizer = torch.linalg.pinv(tildeU.T @ tildeU)
       feat = tildeU @ normalizer
       col_norm = torch.linalg.norm(feat, dim=0)
       powers.append(feat / col_norm)
